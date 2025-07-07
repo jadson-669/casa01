@@ -24,9 +24,6 @@ const pool = new Pool({
 
 
 
-module.exports = pool;
-
-
 
 module.exports = pool;
 
@@ -87,10 +84,10 @@ console.log('Conectando ao banco com URL:', process.env.DATABASE_URL);
 // Substitua no /login
 // Login
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;  // Agora estamos esperando o 'username'
+  const { username, password } = req.body;
 
   try {
-    const result = await pool.query('SELECT * FROM usuarios WHERE username = $1', [username]);  // Usando 'username' na consulta
+    const result = await pool.query('SELECT * FROM usuarios WHERE username = $1', [username]);
 
     if (result.rows.length === 0) {
       return res.status(400).json({ message: 'Usuário não encontrado' });
@@ -104,14 +101,15 @@ app.post('/login', async (req, res) => {
 
     res.json({
       message: 'Login bem-sucedido!',
-      username: user.username, // Envia o 'username' ao invés de 'email'
+      username: user.username,
       saldo: parseFloat(user.saldo),
     });
   } catch (err) {
-    console.error('Erro no login:', err);
-    res.status(500).json({ message: 'Erro no servidor' });
+    console.error('Erro ao fazer login:', err);
+    res.status(500).json({ message: 'Erro no servidor', error: err.message });
   }
 });
+
 
 
 // Registrar depósito (pendente)
