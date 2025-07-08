@@ -1,6 +1,6 @@
 const BASE_URL = window.location.hostname.includes('localhost')
-  ? 'http://https://casa01.onrender.com'
-  : 'https://banco01.onrender.com';
+  ? 'https://casa01.onrender.com'
+  : 'https://casa01.onrender.com';
 
     
     let saldo = 0;
