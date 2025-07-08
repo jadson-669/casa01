@@ -181,55 +181,109 @@ app.get('/saldo/:username', async (req, res) => {
   }
 });
 
+
 // Saque
 app.post('/sacar', async (req, res) => {
   const { username, valor } = req.body;
 
- if (!username || isNaN(valor) || valor < 20) {
-  return res.status(400).json({ message: 'O valor mínimo para saque é R$20,00.' });
-}
+  const valorNumerico = Number(valor);
+
+  if (!username || isNaN(valorNumerico) || valorNumerico < 20) {
+    return res.status(400).json({ message: 'O valor mínimo para saque é R$20,00.' });
+  }
+
+  const client = await pool.connect();
 
   try {
-    const result = await pool.query('SELECT saldo FROM public.usuarios WHERE username = $1', [username]);
+    await client.query('BEGIN');
 
-await pool.query('UPDATE public.usuarios SET saldo = saldo - $1 WHERE username = $2', [valor, username]);
+    const result = await client.query(
+      'SELECT saldo FROM public.usuarios WHERE username = $1 FOR UPDATE',
+      [username]
+    );
+
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
     const saldoAtual = parseFloat(result.rows[0].saldo);
-    if (valor > saldoAtual) {
+
+    if (valorNumerico > saldoAtual) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ message: 'Saldo insuficiente' });
     }
 
-    await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE username = $2', [valor, username]);
-enviarNotificacao(`🏧 Saque solicitado por ${username}: R$${valor}`);
-
-    await pool.query(
-      'INSERT INTO extrato (username, tipo, valor) VALUES ($1, $2, $3)',
-      [username, 'saque', valor]
+    const update = await client.query(
+      'UPDATE public.usuarios SET saldo = saldo - $1 WHERE username = $2 RETURNING saldo',
+      [valorNumerico, username]
     );
 
-    res.json({ message: 'Saque realizado com sucesso' });
+    if (update.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Erro ao atualizar saldo' });
+    }
+
+    const novoSaldo = parseFloat(update.rows[0].saldo).toFixed(2);
+
+    await client.query(
+      'INSERT INTO extrato (username, tipo, valor) VALUES ($1, $2, $3)',
+      [username, 'saque', valorNumerico]
+    );
+
+    await client.query('COMMIT');
+
+    enviarNotificacao(`🏧 Saque solicitado por ${username}: R$${valorNumerico.toFixed(2)}`);
+
+    res.json({ message: 'Saque realizado com sucesso', saldo: parseFloat(novoSaldo) });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Erro no saque:', err);
     res.status(500).json({ message: 'Erro no servidor' });
+  } finally {
+    client.release();
   }
 });
 
-// Apostar
+
+
 app.post('/apostar', async (req, res) => {
   const { username, partida, valor, odd, timeEscolhido } = req.body;
+
+  if (!username || isNaN(valor) || valor <= 0) {
+    return res.status(400).json({ message: 'Valor inválido para aposta.' });
+  }
+
+  const client = await pool.connect();
+
   try {
-    // Buscar saldo do usuário
-const resultSaldo = await pool.query('SELECT saldo FROM public.usuarios WHERE username = $1', [username]);
-    // Somar apostas do usuário feitas hoje
+    await client.query('BEGIN');
+
+    const userResult = await client.query(
+      'SELECT saldo FROM public.usuarios WHERE username = $1 FOR UPDATE',
+      [username]
+    );
+
+    if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    const saldoAtual = parseFloat(userResult.rows[0].saldo);
+
+    // Impede apostas com saldo 0 ou menor
+    if (saldoAtual <= 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Saldo zerado. Deposite para apostar.' });
+    }
+
+    // Verifica limite diário
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const amanha = new Date(hoje);
     amanha.setDate(hoje.getDate() + 1);
 
-    const resultApostasHoje = await pool.query(
+    const totalApostasResult = await client.query(
       `SELECT COALESCE(SUM(valor), 0) AS total
        FROM extrato
        WHERE username = $1
@@ -238,28 +292,50 @@ const resultSaldo = await pool.query('SELECT saldo FROM public.usuarios WHERE us
       [username, hoje, amanha]
     );
 
-    const totalApostadoHoje = parseFloat(resultApostasHoje.rows[0].total);
+    const totalApostadoHoje = parseFloat(totalApostasResult.rows[0].total);
 
-    if (totalApostadoHoje + valor > 20) { // Corrigi para R$20 conforme pediu antes
+    if (totalApostadoHoje + valor > 20) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ message: 'Limite diário de apostas de R$20,00 atingido.' });
     }
 
-    // Deduz saldo e registra aposta
-    await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE username = $2', [valor, username]);
-    await pool.query(
+    // Debita saldo somente se ainda houver saldo suficiente
+    const updateResult = await client.query(
+      `UPDATE public.usuarios
+       SET saldo = saldo - $1
+       WHERE username = $2 AND saldo >= $1
+       RETURNING saldo`,
+      [valor, username]
+    );
+
+    if (updateResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Saldo insuficiente' });
+    }
+
+    // Registra a aposta
+    await client.query(
       'INSERT INTO extrato (username, tipo, valor, partida, odd) VALUES ($1, $2, $3, $4, $5)',
       [username, 'aposta', valor, partida, odd]
     );
 
-    // Envia notificação para o Telegram
-enviarNotificacao(`🎲 Nova aposta de ${username}: R$${valor} no time "${timeEscolhido}" na partida "${partida}" com odd ${odd}`);
+    await client.query('COMMIT');
 
-    res.json({ message: 'Aposta registrada com sucesso!' });
+    enviarNotificacao(`🎲 Nova aposta de ${username}: R$${valor} no time "${timeEscolhido}" na partida "${partida}" com odd ${odd}`);
+
+    return res.json({ message: 'Aposta registrada com sucesso!' });
+
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Erro ao registrar aposta:', err);
-    res.status(500).json({ message: 'Erro no servidor' });
+    return res.status(500).json({ message: 'Erro no servidor' });
+  } finally {
+    client.release();
   }
 });
+
+
+
 
 
 // Extrato
@@ -305,15 +381,4 @@ app.get('/debug/tabelas', async (req, res) => {
     res.status(500).json({ erro: err.message });
   }
 });
-app.get('/debug/tabelas', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
-  }
-});
+

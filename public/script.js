@@ -171,7 +171,7 @@ document.getElementById('btn-confirmar-aposta').addEventListener('click', async 
   const { partida, valor, odd, username, timeEscolhido } = apostaTemp;
 
   try {
-    const response = await fetch(`${BASE_URL}/apostar`, {  // <<== corrigido aqui
+    const response = await fetch(`${BASE_URL}/apostar`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -192,6 +192,10 @@ document.getElementById('btn-confirmar-aposta').addEventListener('click', async 
 
     fecharModalConfirmAposta();
     mostrarMensagem(data.message);
+
+    // ✅ ATUALIZA saldo e extrato após aposta
+    await carregarSaldo(username);
+    await carregarExtrato(username);
 
   } catch (err) {
     console.error('Erro ao apostar:', err);
@@ -430,8 +434,8 @@ mostrarMensagem("⚠️ O valor mínimo para saque é R$20,00.");
     fecharModalSaque();
 
     // Atualiza saldo e extrato
-    //await carregarSaldo(username);
-    //await carregarExtrato(username);
+    await carregarSaldo(username);
+    await carregarExtrato(username);
 
   } catch (err) {
     console.error('Erro ao realizar saque:', err);
