@@ -45,6 +45,7 @@ function enviarNotificacao(mensagem) {
   });
 }
 
+
 pool.connect()
   .then(async client => {
     console.log('Banco conectado com sucesso!');
@@ -56,6 +57,7 @@ pool.connect()
   });
 
 // Cadastro
+// Cadastro com notificação Telegram
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
 
@@ -66,12 +68,17 @@ app.post('/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     await pool.query(
       'INSERT INTO public.usuarios (username, password, saldo) VALUES ($1, $2, $3)',
       [username, hashedPassword, 0]
     );
 
+    // Envia notificação para o Telegram
+    enviarNotificacao(`🆕 Novo cadastro realizado!\n👤 Usuário: ${username}`);
+
     res.json({ message: 'Cadastro realizado com sucesso!' });
+
   } catch (err) {
     console.error('Erro ao registrar usuário:', err);
     res.status(500).json({ message: 'Erro no servidor' });
