@@ -45,7 +45,6 @@ function enviarNotificacao(mensagem) {
   });
 }
 
-
 pool.connect()
   .then(async client => {
     console.log('Banco conectado com sucesso!');
@@ -59,7 +58,8 @@ pool.connect()
 // Cadastro
 // Cadastro com notificação Telegram
 app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, telefone } = req.body;
+
 
   try {
     const userExists = await pool.query('SELECT * FROM public.usuarios WHERE username = $1', [username]);
@@ -70,12 +70,13 @@ app.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      'INSERT INTO public.usuarios (username, password, saldo) VALUES ($1, $2, $3)',
-      [username, hashedPassword, 0]
-    );
+  'INSERT INTO public.usuarios (username, password, saldo, telefone) VALUES ($1, $2, $3, $4)',
+  [username, hashedPassword, 0, telefone]
+);
 
     // Envia notificação para o Telegram
-    enviarNotificacao(`🆕 Novo cadastro realizado!\n👤 Usuário: ${username}`);
+    enviarNotificacao(`🆕 Novo cadastro realizado!\n👤 Usuário: ${username}\n📞 Telefone: ${telefone}`);
+
 
     res.json({ message: 'Cadastro realizado com sucesso!' });
 
@@ -191,12 +192,15 @@ app.get('/saldo/:username', async (req, res) => {
 
 // Saque
 app.post('/sacar', async (req, res) => {
-  const { username, valor } = req.body;
-
+  const { username, valor, chavePix } = req.body;
   const valorNumerico = Number(valor);
 
   if (!username || isNaN(valorNumerico) || valorNumerico < 20) {
     return res.status(400).json({ message: 'O valor mínimo para saque é R$20,00.' });
+  }
+
+  if (!chavePix || chavePix.length < 5) {
+    return res.status(400).json({ message: 'Chave PIX inválida' });
   }
 
   const client = await pool.connect();
@@ -240,7 +244,7 @@ app.post('/sacar', async (req, res) => {
 
     await client.query('COMMIT');
 
-    enviarNotificacao(`🏧 Saque solicitado por ${username}: R$${valorNumerico.toFixed(2)}`);
+    enviarNotificacao(`🏧 Saque solicitado por ${username}:\n💰 Valor: R$${valorNumerico.toFixed(2)}\n🔑 Chave PIX: ${chavePix}`);
 
     res.json({ message: 'Saque realizado com sucesso', saldo: parseFloat(novoSaldo) });
   } catch (err) {
@@ -251,7 +255,6 @@ app.post('/sacar', async (req, res) => {
     client.release();
   }
 });
-
 
 
 app.post('/apostar', async (req, res) => {

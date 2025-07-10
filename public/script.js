@@ -1,5 +1,5 @@
 const BASE_URL = window.location.hostname.includes('localhost')
-  ?'https://casa01.onrender.com'
+  ?'http://localhost:3000'
   : 'https://casa01.onrender.com';
 
     
@@ -104,22 +104,29 @@ document.getElementById('confirmar-deposito').addEventListener('click', async fu
 
 
     function toggleForm() {
-      const title = document.getElementById('form-title');
-      const button = document.querySelector('#auth button');
-      const toggle = document.querySelector('.toggle');
+  const titulo = document.getElementById("form-title");
+  const toggle = document.querySelector(".toggle");
+  const usernameInput = document.getElementById("username");
+  const passwordInput = document.getElementById("password");
+  const telefoneInput = document.getElementById("telefone");
 
-      if (title.textContent === 'Login') {
-        title.textContent = 'Cadastro';
-        button.textContent = 'Cadastrar';
-        button.setAttribute('onclick', 'register()');
-        toggle.textContent = 'Já tem conta? Fazer login';
-      } else {
-        title.textContent = 'Login';
-        button.textContent = 'Entrar';
-        button.setAttribute('onclick', 'login()');
-        toggle.textContent = 'Não tem conta? Cadastre-se';
-      }
-    }
+  const isLogin = titulo.textContent.includes("Entrar");
+
+  if (isLogin) {
+    titulo.textContent = "📝 Criar nova conta";
+    toggle.textContent = "Já tem conta? Entrar";
+    if (telefoneInput) telefoneInput.style.display = "block"; // Mostra telefone no registro
+  } else {
+    titulo.textContent = "🎯 Entrar na sua conta";
+    toggle.textContent = "Não tem conta? Cadastre-se";
+    if (telefoneInput) telefoneInput.style.display = "none"; // Esconde telefone no login
+  }
+
+  // Limpa os campos sempre que alternar
+  usernameInput.value = "";
+  passwordInput.value = "";
+  if (telefoneInput) telefoneInput.value = "";
+}
 
 let apostaTemp = null; // pra guardar dados da aposta temporariamente
 
@@ -211,37 +218,8 @@ document.getElementById('btn-cancelar-aposta').addEventListener('click', () => {
   apostaTemp = null;
 });
 
-async function confirmarAposta(partida, valorId, timeId) {
-  // ... validações ...
 
-  try {
-    const res = await fetch(`${BASE_URL}/apostar`, {  // <<== corrigido aqui
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, partida, valor, odd })
-    });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      if (data.message && data.message.includes("Limite diário")) {
-        document.getElementById('modal-confirm-aposta').style.display = 'none';
-        document.getElementById('modal-limite-aposta').style.display = 'flex';
-      } else {
-        mostrarPopup(data.message || "Erro ao apostar.");
-      }
-      return;
-    }
-
-    mostrarPopup(`Aposta registrada! Possível retorno: R$${(valor*odd).toFixed(2)}`);
-    await carregarSaldo(username);
-    await carregarExtrato(username);
-
-  } catch (err) {
-    console.error("Erro ao registrar aposta:", err);
-    alert("Erro ao conectar com o servidor.");
-  }
-}
 
 
 
@@ -249,16 +227,16 @@ async function confirmarAposta(partida, valorId, timeId) {
 async function register() {
   const user = document.getElementById('username').value;
   const pass = document.getElementById('password').value;
-  const email = document.getElementById('email').value;
+  const telefone = document.getElementById('telefone').value;
 
-  if (!user || !pass || !email) {
+  if (!user || !pass || !telefone) {
     return alert('Preencha todos os campos');
   }
 
-  const res = await fetch(`${BASE_URL}/register`, { // <<== corrigido aqui
+  const res = await fetch(`${BASE_URL}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: user, password: pass, email: email })
+    body: JSON.stringify({ username: user, password: pass, telefone: telefone })
   });
 
   const data = await res.json();
@@ -406,21 +384,20 @@ async function confirmarEnvioSaque() {
   const username = sessionStorage.getItem('user');
 
   if (isNaN(valor) || valor < 20) {
-  mostrarPopup("⚠️ O valor mínimo para saque é R$20,00.");
+    mostrarPopup("⚠️ O valor mínimo para saque é R$20,00.");
     return;
   }
 
   if (!chavePix) {
-mostrarMensagem("⚠️ O valor mínimo para saque é R$20,00.");
+    mostrarPopup("⚠️ Insira sua chave Pix.");
     return;
   }
 
   try {
     const res = await fetch(`${BASE_URL}/sacar`, {
-
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, valor })
+      body: JSON.stringify({ username, valor, chavePix }) // <-- chavePix enviada aqui!
     });
 
     const data = await res.json();
@@ -433,7 +410,6 @@ mostrarMensagem("⚠️ O valor mínimo para saque é R$20,00.");
     mostrarPopup(`Saque de R$${valor.toFixed(2)} solicitado com sucesso!`);
     fecharModalSaque();
 
-    // Atualiza saldo e extrato
     await carregarSaldo(username);
     await carregarExtrato(username);
 
@@ -442,6 +418,7 @@ mostrarMensagem("⚠️ O valor mínimo para saque é R$20,00.");
     mostrarPopup('Erro ao comunicar com o servidor.');
   }
 }
+
 function calcularRetorno(valorId, selectId, retornoId) {
   const valor = parseFloat(document.getElementById(valorId).value);
   const odd = parseFloat(document.getElementById(selectId).value);
@@ -470,7 +447,8 @@ function fecharModalSaqueMinimo() {
 function toggleForm() {
   const title = document.getElementById('form-title');
   const username = document.getElementById('username');
-  const email = document.getElementById('email');
+ const telefone = document.getElementById('telefone');
+
   const password = document.getElementById('password');
   const button = document.querySelector('#auth button:first-of-type');
   const toggleBtn = document.querySelector('.toggle');
@@ -478,7 +456,8 @@ function toggleForm() {
   if (button.textContent === 'Entrar') {
     // Alternar para cadastro
     title.textContent = 'Cadastro';
-    email.style.display = 'block';  // mostra email
+   telefone.style.display = 'block';
+
     button.textContent = 'Cadastrar';
     button.onclick = register;
     toggleBtn.textContent = 'Já tem conta? Fazer login';
@@ -486,7 +465,7 @@ function toggleForm() {
   } else {
     // Alternar para login
     title.textContent = 'Login';
-    email.style.display = 'none';  // esconde email
+    telefone.style.display = 'none';
     button.textContent = 'Entrar';
     button.onclick = login;
     toggleBtn.textContent = 'Não tem conta? Cadastre-se';
