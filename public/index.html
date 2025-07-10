@@ -785,39 +785,42 @@ body {
 
 
   <section class="main" id="main" style="display: none;">
-  <h2 id="titulo-partidas">⚽Partida de 23/06/2025</h2>
+  <h2 id="titulo-partidas">⚽Partida de 13/07/2025</h2>
+
 
 <div class="match" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-  <div class="teams" style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1rem; color: #f8fafc;">
-    <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 4px 8px; border-radius: 8px;">Flamengo</span>
-    <span class="versus" style="color: #fbbf24;">×</span>
-    <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 4px 8px; border-radius: 8px;">Palmeiras</span>
-  </div>
+ <div class="teams" style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1rem; color: #f8fafc;">
+  <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 4px 8px; border-radius: 8px;">Trairas</span>
+  <span class="versus" style="color: #fbbf24;">×</span>
+  <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 4px 8px; border-radius: 8px;">Marcela</span>
+</div>
 
-  <div class="odds" style="flex: 1; min-width: 240px; display: flex; justify-content: space-around; align-items: center; color: #f1f5f9; font-size: 0.95rem;">
+<div class="odds" style="flex: 1; min-width: 240px; display: flex; justify-content: space-around; align-items: center; color: #f1f5f9; font-size: 0.95rem;">
   <div style="text-align: center;">
-    <div style="font-weight: bold; color: #38bdf8;">⚽ Flamengo</div>
-    <div style="color: #22c55e;"><strong>1.80</strong></div>
+    <div style="font-weight: bold; color: #38bdf8;">⚽ Trairas</div>
+    <div style="color: #22c55e;"><strong>1.50</strong></div>
   </div>
   <div style="text-align: center;">
     <div style="font-weight: bold; color: #fbbf24;">🤝 Empate</div>
-    <div style="color: #22c55e;"><strong>3.10</strong></div>
+    <div style="color: #22c55e;"><strong>2.0</strong></div>
   </div>
   <div style="text-align: center;">
-    <div style="font-weight: bold; color: #38bdf8;">🟢 Palmeiras</div>
-    <div style="color: #22c55e;"><strong>2.20</strong></div>
+    <div style="font-weight: bold; color: #38bdf8;">🟢 Marcela</div>
+    <div style="color: #22c55e;"><strong>1.70</strong></div>
   </div>
 </div>
 
 
   <div class="bet-form" style="flex: 1; min-width: 200px; display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
     <input type="number" id="valor1" placeholder="Valor (R$)" oninput="calcularRetorno('valor1', 'time1', 'retorno1')" style="width: 90px; padding: 6px; border-radius: 6px; border: none; background: #334155; color: #f1f5f9;" />
-    <select id="time1" onchange="calcularRetorno('valor1', 'time1', 'retorno1')" style="padding: 6px; border-radius: 6px; border: none; background: #334155; color: #f1f5f9;">
-      <option value="1.8">Flamengo</option>
-      <option value="3.1">Empate</option>
-      <option value="2.2">Palmeiras</option>
-    </select>
-    <button class="bet-btn" onclick="apostar('Flamengo vs Palmeiras', 'valor1', 'time1')" style="padding: 8px 14px; font-size: 0.9rem;">🎲 Apostar</button>
+   <select id="time1" onchange="calcularRetorno('valor1', 'time1', 'retorno1')">
+  <option value="1.5">Trairas</option>
+  <option value="2.0">Empate</option>
+  <option value="1.7">Marcela</option>
+</select>
+
+<button class="bet-btn" onclick="apostar('Trairas vs Marcela', 'valor1', 'time1')">🎲 Apostar</button>
+
   </div>
 
   <div id="retorno1" class="retorno-info" style="width: 100%; margin-top: 6px; color: #22c55e; font-weight: 700;"></div>
