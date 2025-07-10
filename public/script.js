@@ -1,5 +1,5 @@
 const BASE_URL = window.location.hostname.includes('localhost')
-  ?'http://localhost:3000'
+  ?'https://casa01.onrender.com'
   : 'https://casa01.onrender.com';
 
     
