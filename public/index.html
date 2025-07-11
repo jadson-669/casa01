@@ -704,6 +704,33 @@ body {
 #auth .toggle:hover {
   color: #00ff99;
 }
+.teams-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 20px;
+  text-align: center;
+}
+
+.team-nome {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #f8fafc;
+  background: linear-gradient(145deg, #334155, #1e293b);
+  padding: 6px 12px;
+  border-radius: 10px;
+}
+
+.placar {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #facc15;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
   </style>
 </head>
 <body>
@@ -780,23 +807,32 @@ body {
     <span class="toggle" onclick="toggleForm()">Não tem conta? Cadastre-se</span>
   </div>
 </div>
-
+<div id="painel-admin" style="display: none; margin-top: 20px; background: #1e293b; padding: 20px; border-radius: 12px;">
+  <h3 style="color: #38bdf8;">Painel Admin - Atualizar Placar</h3>
+  <label>Gols Trairas:</label>
+  <input type="number" id="inputTrairas" style="margin-bottom: 10px;" /><br />
+  <label>Gols Marcela:</label>
+  <input type="number" id="inputMarcela" style="margin-bottom: 10px;" /><br />
+  <button onclick="atualizarPlacarAdmin()" class="bet-btn">Atualizar Placar</button>
+</div>
 
 
   <section class="main" id="main" style="display: none;">
   <h2 id="titulo-partidas">⚽Partida de 13/07/2025</h2>
 
 
-<div class="teams" style="flex: 1; min-width: 200px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; font-weight: bold; font-size: 1rem; color: #f8fafc; text-align: center;">
-  <div style="display: flex; flex-direction: column; align-items: center;">
-    <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 6px 12px; border-radius: 10px;">Trairas</span>
+<div class="teams-container">
+  <div class="team-nome">Trairas</div>
+  <div class="placar">
+    <span id="golsTrairas">0</span>
+    <span class="versus">×</span>
+    <span id="golsMarcela">0</span>
   </div>
-  <div style="display: flex; flex-direction: column; align-items: center;">
-    <span class="versus" style="color: #fbbf24; font-size: 1.2rem;">×</span>
-  </div>
-  <div style="display: flex; flex-direction: column; align-items: center;">
-    <span class="team-name" style="background: linear-gradient(145deg, #334155, #1e293b); padding: 6px 12px; border-radius: 10px;">Marcela</span>
-  </div>
+  <div class="team-nome">Marcela</div>
+</div>
+
+
+
 </div>
 
 </div>
@@ -902,5 +938,54 @@ body {
     </div>
   </section>
 <script src="script.js"></script>
+<script>
+  let golsTrairas = 0;
+  let golsMarcela = 0;
+
+ function atualizarPlacar() {
+  const golsTrairas = parseInt(document.getElementById('golsTrairasInput').value);
+  const golsMarcela = parseInt(document.getElementById('golsMarcelaInput').value);
+
+  fetch(`${BASE_URL}/atualizar-placar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ golsTrairas, golsMarcela })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.sucesso) {
+        alert('Placar atualizado com sucesso!');
+      } else {
+        alert('Erro ao atualizar o placar');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Erro ao enviar atualização');
+    });
+}
+
+
+function atualizarPlacarDoBanco() {
+  fetch(`${BASE_URL}/placar`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('golsTrairas').textContent = data.golsTrairas;
+      document.getElementById('golsMarcela').textContent = data.golsMarcela;
+    })
+    .catch(error => {
+      console.error('Erro ao buscar placar:', error);
+    });
+}
+
+// Atualiza a cada 5 segundos
+setInterval(atualizarPlacarDoBanco, 5000);
+
+// Atualiza imediatamente ao carregar
+atualizarPlacarDoBanco();
+
+
+</script>
+
 </body>
 </html>

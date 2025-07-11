@@ -1,5 +1,5 @@
 const BASE_URL = window.location.hostname.includes('localhost')
-  ?'https://casa01.onrender.com'
+  ?'http://localhost:3000'
   : 'https://casa01.onrender.com';
 
     
@@ -50,6 +50,78 @@ function validarDeposito() {
     pixInfo.style.display = 'block';
   } else {
     pixInfo.style.display = 'none';
+  }
+}
+function login() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+
+  fetch(`${BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      // Login OK: exibir o painel principal
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      document.getElementById('logo-betime').style.display = 'block';
+      document.getElementById('acoes').style.display = 'flex';
+      document.getElementById('header-user').style.display = 'flex';
+      
+      // Salva o usuário no localStorage
+      const username = localStorage.getItem('user');
+
+
+
+      // 👉 Verifica se é admin
+      if (data.usuario.username === 'admin') {
+  document.getElementById('painel-admin').style.display = 'block';
+} else {
+  document.getElementById('painel-admin').style.display = 'none';
+}
+
+    } else {
+      alert(data.message || 'Erro no login');
+    }
+  });
+}
+
+function atualizarPlacarAdmin() {
+  const golsTrairas = parseInt(document.getElementById('inputTrairas').value);
+  const golsMarcela = parseInt(document.getElementById('inputMarcela').value);
+
+  fetch(`${BASE_URL}/placar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ golsTrairas, golsMarcela })
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert('✅ Placar atualizado com sucesso!');
+      atualizarPlacarDoBanco(); // já atualiza no site
+    })
+    .catch(err => {
+      console.error('Erro ao atualizar placar:', err);
+      alert('❌ Erro ao atualizar placar!');
+    });
+}
+
+
+function mostrarAreaPrincipal(usuario) {
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('acoes').style.display = 'flex';
+  document.getElementById('logo-betime').style.display = 'block';
+  document.getElementById('header-user').style.display = 'flex';
+
+  // Exibe painel admin apenas para o usuário admin
+  if (usuario.username === 'admin') {
+    document.getElementById('painel-admin').style.display = 'block';
+  } else {
+    document.getElementById('painel-admin').style.display = 'none';
   }
 }
 
@@ -261,6 +333,9 @@ async function login() {
     mostrarPopup(data.message || "Erro no login");
     return;
   }
+if (data.isAdmin) {
+  document.getElementById('painel-admin').style.display = 'block';
+}
 
   sessionStorage.setItem('user', data.username);
   await carregarSaldo(data.username);
@@ -309,21 +384,29 @@ document.getElementById('btn-fechar-boas-vindas').addEventListener('click', () =
 
 
 window.onload = async () => {
-  const username = sessionStorage.getItem('user');
-  if (username) {
+  const usuarioSalvo = sessionStorage.getItem('user');
+  if (usuarioSalvo) {
+    const username = usuarioSalvo; // já é só o nome do usuário
+
     document.getElementById('auth').style.display = 'none';
     document.getElementById('main').style.display = 'block';
     document.getElementById('saldo').style.display = 'inline';
     document.getElementById('header-user').style.display = 'flex';
     document.getElementById('acoes').style.display = 'flex';
+    document.getElementById('logo-betime').style.display = 'block';
+
     await carregarSaldo(username);
     await carregarExtrato(username);
     setInterval(() => carregarSaldo(username), 15000);
 
-    // ✅ Adicione esta linha para exibir a logo:
-    document.getElementById('logo-betime').style.display = 'block';
+    if (username === 'admin') {
+      document.getElementById('painel-admin').style.display = 'block';
+    } else {
+      document.getElementById('painel-admin').style.display = 'none';
+    }
   }
 };
+
 
 
 

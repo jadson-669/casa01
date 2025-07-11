@@ -95,26 +95,29 @@ app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const result = await pool.query('SELECT * FROM usuarios WHERE username = $1', [username]);
+    const query = 'SELECT * FROM usuarios WHERE username = $1';
+    const resultado = await pool.query(query, [username]);
 
-    if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'Usuário não encontrado' });
+    if (resultado.rows.length > 0) {
+      const user = resultado.rows[0];
+      const senhaCorreta = await bcrypt.compare(password, user.password);
+
+      if (senhaCorreta) {
+        res.json({
+          success: true,
+          username: user.username,
+          saldo: parseFloat(user.saldo),
+          isAdmin: user.username === 'admin' // 👈 Aqui define o admin
+        });
+      } else {
+        res.status(401).json({ message: 'Senha incorreta' });
+      }
+    } else {
+      res.status(404).json({ message: 'Usuário não encontrado' });
     }
-
-    const user = result.rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Senha incorreta' });
-    }
-
-    res.json({
-      message: 'Login bem-sucedido!',
-      username: user.username,
-      saldo: parseFloat(user.saldo),
-    });
   } catch (err) {
     console.error('Erro ao fazer login:', err);
-    res.status(500).json({ message: 'Erro no servidor', error: err.message });
+    res.status(500).json({ message: 'Erro no servidor' });
   }
 });
 
@@ -166,7 +169,53 @@ await pool.query('UPDATE public.usuarios SET saldo = saldo + $1 WHERE username =
     res.status(500).json({ message: 'Erro no servidor' });
   }
 });
+// Rota para obter o placar
+app.get('/placar', async (req, res) => {
+  try {
+    const resultado = await pool.query('SELECT gols_trairas, gols_marcela FROM partidas WHERE nome = $1', ['Trairas vs Marcela']);
+    if (resultado.rows.length > 0) {
+      res.json({
+        golsTrairas: resultado.rows[0].gols_trairas,
+        golsMarcela: resultado.rows[0].gols_marcela
+      });
+    } else {
+      res.status(404).json({ error: 'Partida não encontrada' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao buscar placar' });
+  }
+});
+app.post('/placar', async (req, res) => {
+  const { golsTrairas, golsMarcela } = req.body;
+  try {
+    await pool.query(
+      'UPDATE partidas SET gols_trairas = $1, gols_marcela = $2 WHERE nome = $3',
+      [golsTrairas, golsMarcela, 'Trairas vs Marcela']
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar placar' });
+  }
+});
 
+
+// Atualiza placar manualmente
+app.post('/atualizar-placar', async (req, res) => {
+  const { golsTrairas, golsMarcela } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE partidas SET gols_trairas = $1, gols_marcela = $2 WHERE nome = $3',
+      [golsTrairas, golsMarcela, 'Trairas vs Marcela']
+    );
+    res.json({ sucesso: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao atualizar placar' });
+  }
+});
 
 // Saldo
 app.get('/saldo/:username', async (req, res) => {
