@@ -127,7 +127,7 @@ function mostrarAreaPrincipal(usuario) {
   document.getElementById('logo-betime').style.display = 'block';
   document.getElementById('header-user').style.display = 'flex';
 
-  // Exibe painel admin apenas para o usuário admin
+  // Exibe painel adm2in apenas para o usuário admin
   if (usuario.username === 'admin') {
     document.getElementById('painel-admin').style.display = 'block';
   } else {
